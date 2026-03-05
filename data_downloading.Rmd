@@ -1,0 +1,115 @@
+---
+title: "deseq2_demo"
+author: "Sreeram Peela"
+date: "2026-03-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data downloads
+
+Data can be downloaded directly from NCBI GEO (via FTP/HTTP) or through dedicated R packages like GEOquery, cBioDataPack, or TCGABiolinks
+
+```{r}
+install.packages("BiocManager")
+BiocManager::install("cBioPortalData")
+BiocManager::install("TCGAbiolinks")
+BiocManager::install("GEOquery")
+```
+
+#### Demonstrating cBioDataPack
+
+```{r}
+library(cBioPortalData)
+cbio <- cBioPortal() # setting up an instance
+studies <- getStudies(cbio, buildReport = TRUE)
+head(studies)
+```
+
+The dataset can be downloaded entirely using cBioDataPack or partially using the cBioPortalData functions
+
+```{r}
+laml <- cBioDataPack(cancer_study_id = "laml_tcga",
+  use_cache = TRUE,
+  names.field = c("Hugo_Symbol", "Entrez_Gene_Id", "Gene"),
+  cleanup = TRUE, ask = FALSE)
+laml # entire data types - multiomics
+```
+
+Each of the experiment class can be accessed as a named-list object
+
+```{r}
+laml_rsem_rnaseq <- laml[['mrna_seq_v2_rsem']]
+laml_rsem_rnaseq
+```
+
+Each object is a SummarisedExperiment class. Refer to the figure below: ![](./deseq_demo/summarisedExperiment.png)
+
+Load this library to work with the datasets
+
+```{r}
+library(SummarizedExperiment)
+```
+
+```{r}
+genes_of_interest <- rownames(laml_rsem_rnaseq)[1:50]
+samples_of_interest <- c("TCGA-AB-2803-03", "TCGA-AB-2805-03", "TCGA-AB-2806-03", "TCGA-AB-2807-03", "TCGA-AB-2808-03")
+```
+
+```{r}
+laml_subset <- cBioPortalData(api = cbio, studyId = "laml_tcga", ask = FALSE,
+                       by = "hugoGeneSymbol",
+                       genes = genes_of_interest,molecularProfileIds =  c('laml_tcga_rna_seq_v2_mrna')
+                       )
+laml_subset # selected data layer and subset of genes present
+```
+
+We can now subset according to the sample ids
+
+```{r}
+valid_samples <- intersect(
+  samples_of_interest,
+  colnames(laml_subset[[1]])
+)
+counts_subset <- laml_subset[[1]][, valid_samples]
+
+actual_counts <- assay(counts_subset)
+```
+
+We can now construct a deg class based on our requirement by extracting the counts and metadata.
+
+#### GEOquery demo
+
+```{r}
+library(GEOquery)
+```
+
+```{r}
+options(download.file.method.GEOquery = "libcurl")
+
+gse <- getGEO( GEO = 'GSE5364', # microarray dataset
+               filename = NULL, 
+               destdir = getwd(), # write in the current dir
+               GSElimits = NULL, 
+               GSEMatrix = TRUE,# get the matrix
+               AnnotGPL = FALSE, 
+               getGPL = TRUE, 
+               parseCharacteristics = TRUE )
+```
+
+```{r}
+length(gse)
+```
+
+```{r}
+gse[[1]]
+```
+
+As the above is an expressionset, we can extract the counts using exprs function.
+
+```{r}
+counts_matrix <- exprs(gse[[1]])
+```
