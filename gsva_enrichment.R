@@ -34,8 +34,13 @@ gsva_par <- gsvaParam(
   minSize = 15,
   maxSize = 500
 )
-
+# run gsva
 gsva_results <- gsva(gsva_par)
-gsva_results_df <- gsva_results %>%
+# get the results
+gsva_results_mat <- gsva_results %>%
   as.data.frame() %>%
-  tibble::rownames_to_column("pathway")
+  as.matrix()
+gsva_sub <- gsva_results_mat[1:10,]
+# plot the heatmap
+pheatmap(mat=gsva_sub, cluster_rows = TRUE, cluster_cols = TRUE,
+         show_colnames = FALSE)
