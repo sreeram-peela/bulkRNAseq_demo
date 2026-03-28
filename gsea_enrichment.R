@@ -52,6 +52,7 @@ most_positive_nes_plot <- enrichplot::gseaplot(
   color.line = "#0d76ff"
 )
 
+# Plot the GSEA results per term
 enrichplot::gseaplot(
   gsea_results,
   geneSetID = "WP_EMBRYONIC_STEM_CELL_PLURIPOTENCY_PATHWAYS",
